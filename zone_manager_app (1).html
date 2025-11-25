@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Location Zone Manager</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .zone-panel {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #00d9ff;
+        }
+
+        .zone-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zone-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .zone-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .zone-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .zone-count {
+            background: rgba(0, 217, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .location-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 300px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .location-header {
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .location-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .location-list {
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px 25px;
+        }
+
+        .location-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .location-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .location-zone-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .location-details {
+            flex: 1;
+        }
+
+        .location-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .location-address {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .location-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #e4e4e4;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-icon.delete:hover {
+            background: rgba(255, 71, 87, 0.3);
+            color: #ff4757;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d9ff;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #e4e4e4;
+            font-size: 1em;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .settings-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-input {
+            width: 60px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #e4e4e4;
+            text-align: center;
+        }
+
+        select.sort-select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #e4e4e4;
+            cursor: pointer;
+        }
+
+        /* Login Panel */
+        .login-panel {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .login-panel .modal-title {
+            margin-bottom: 30px;
+        }
+
+        .guest-link {
+            margin-top: 20px;
+            color: #00d9ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Leaflet Custom Styles */
+        .leaflet-popup-content-wrapper {
+            background: #1a1a2e;
+            color: #e4e4e4;
+            border-radius: 12px;
+        }
+
+        .leaflet-popup-tip {
+            background: #1a1a2e;
+        }
+
+        .leaflet-popup-content {
+            margin: 15px;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #00d9ff;
+        }
+
+        .popup-address {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .popup-zone {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .popup-btn {
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .user-badge {
+            background: rgba(0, 217, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        /* Custom marker styles */
+        .custom-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            border: 2px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Zone action buttons */
+        .zone-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .zone-actions .btn-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-item {
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            color: #00d9ff;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .zone-panel {
+                width: 100%;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">🗺️ Zone Manager Pro</div>
+            <div class="stats-bar">
+                <span class="stat-item">Total: <span class="stat-value" id="totalCount">0</span></span>
+                <span class="stat-item">Zones: <span class="stat-value" id="zoneCount">0</span></span>
+            </div>
+            <div class="user-section">
+                <span class="user-badge" id="userBadge">Guest</span>
+                <button class="btn btn-secondary" id="loginBtn">Login</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="zone-panel">
+                <h3 class="panel-title">Zones</h3>
+                <div class="settings-panel">
+                    <div class="settings-row">
+                        <span>Max per zone:</span>
+                        <input type="number" class="settings-input" id="maxPerZone" value="15" min="1" max="50">
+                    </div>
+                    <div class="settings-row">
+                        <button class="btn btn-primary btn-sm" id="recalibrateAll" style="padding: 8px 12px; font-size: 0.85em;">Recalibrate All</button>
+                        <button class="btn btn-secondary btn-sm" id="addZoneBtn" style="padding: 8px 12px; font-size: 0.85em;">+ Zone</button>
+                    </div>
+                </div>
+                <div id="zoneList"></div>
+            </div>
+        </div>
+
+        <div class="location-panel">
+            <div class="location-header">
+                <h3 class="panel-title" style="margin-bottom: 0;">Locations</h3>
+                <div class="location-controls">
+                    <select class="sort-select" id="sortSelect">
+                        <option value="name">Sort by Name</option>
+                        <option value="zone">Sort by Zone</option>
+                        <option value="address">Sort by Address</option>
+                    </select>
+                    <button class="btn btn-primary" id="addLocationBtn">+ Add Location</button>
+                </div>
+            </div>
+            <div class="location-list" id="locationList"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <h2 class="modal-title">Welcome Back</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('loginModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleLogin()">Login</button>
+            </div>
+            <div class="guest-link" onclick="createAccount()">Create Account</div>
+            <div class="guest-link" onclick="continueAsGuest()">Continue as Guest</div>
+        </div>
+    </div>
+
+    <!-- Create Account Modal -->
+    <div class="modal-overlay" id="createAccountModal">
+        <div class="modal">
+            <h2 class="modal-title">Create Account</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="newUsername" placeholder="Choose a username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="newPassword" placeholder="Choose a password">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm password">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('createAccountModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleCreateAccount()">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Location Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h2 class="modal-title" id="editModalTitle">Edit Location</h2>
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="editName" placeholder="Business name">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="editAddress" placeholder="Full address">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="number" step="0.000001" id="editLat" placeholder="Latitude">
+                </div>
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="number" step="0.000001" id="editLng" placeholder="Longitude">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Zone Assignment</label>
+                <select id="editZone">
+                    <option value="auto">Auto-assign</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveLocation()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Zone Modal -->
+    <div class="modal-overlay" id="addZoneModal">
+        <div class="modal">
+            <h2 class="modal-title">Add New Zone</h2>
+            <div class="form-group">
+                <label>Zone Name</label>
+                <input type="text" id="newZoneName" placeholder="Zone name">
+            </div>
+            <div class="form-group">
+                <label>Zone Color</label>
+                <input type="color" id="newZoneColor" value="#00d9ff">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('addZoneModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addNewZone()">Add Zone</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pre-loaded locations for Chris's account
+        const chrisLocations = [{"id": 1, "name": "Capital Flooring Inc", "address": "46969 West Rd, Wixom, MI 48393", "lat": 42.538477, "lng": -83.526282, "zone": null}, {"id": 2, "name": "Leslie McGwire & Associates", "address": "4301 Orchard Lake Rd, West Bloomfield Township, MI 48323", "lat": 42.536775, "lng": -83.360203, "zone": null}, {"id": 3, "name": "Gumma Group", "address": "7419 Middlebelt Rd # 4, West Bloomfield Township, MI 48322", "lat": 42.556541, "lng": -83.371787, "zone": null}, {"id": 4, "name": "DKI Demolition", "address": "6775 Daly Rd Suite#101, West Bloomfield Township, MI 48322", "lat": 42.527819, "lng": -83.387931, "zone": null}, {"id": 5, "name": "Independence Commercial Construction, Inc.", "address": "2635 Dixie Hwy, Waterford Township, MI 48328", "lat": 42.628942, "lng": -83.404473, "zone": null}, {"id": 6, "name": "Wolverine Stone Co", "address": "27270 Gloede Dr, Warren, MI 48088", "lat": 42.498316, "lng": -82.966829, "zone": null}, {"id": 7, "name": "Wakely Associates", "address": "30500 Van Dyke Ave, Warren, MI 48093", "lat": 42.529534, "lng": -83.014222, "zone": null}, {"id": 8, "name": "Villa Carpets, Inc", "address": "30000 Ryan Rd, Warren, MI 48092", "lat": 42.501853, "lng": -83.041066, "zone": null}, {"id": 9, "name": "Son Shine Floor Covering", "address": "31065 Ryan Rd, Warren, MI 48092", "lat": 42.497968, "lng": -83.008608, "zone": null}, {"id": 10, "name": "Ross & Barr Inc", "address": "11800 E 9 Mile Rd, Warren, MI 48089", "lat": 42.47742, "lng": -82.981568, "zone": null}, {"id": 11, "name": "Motor City Carpet & Flooring", "address": "23957 Ryan Rd, Warren, MI 48091", "lat": 42.496256, "lng": -83.049944, "zone": null}, {"id": 12, "name": "MGC Granite & Design", "address": "14230 E 11 Mile Rd, Warren, MI 48089", "lat": 42.476995, "lng": -82.974109, "zone": null}, {"id": 13, "name": "Dapco Central Operations Office", "address": "11020 E 9 Mile Rd, Warren, MI 48089", "lat": 42.477883, "lng": -82.970201, "zone": null}, {"id": 14, "name": "Creative Building & Remodeling", "address": "26820 Dequindre Rd, Warren, MI 48091", "lat": 42.48376, "lng": -83.03969, "zone": null}, {"id": 15, "name": "Brencal Contractors Inc", "address": "26079 Schoenherr Rd, Warren, MI 48089", "lat": 42.463173, "lng": -82.968397, "zone": null}, {"id": 16, "name": "Stonescape Supply", "address": "4454 22 Mile Rd, Shelby Township, MI 48317", "lat": 42.68641, "lng": -83.074634, "zone": null}, {"id": 17, "name": "Beninati Custom Pools, Swim Spas and Hot Tubs", "address": "6991 Auburn Rd, Utica, MI 48317", "lat": 42.662261, "lng": -83.055881, "zone": null}, {"id": 18, "name": "Zac Cruse Construction Company", "address": "4150 Lincoln St, Detroit, MI 48208", "lat": 42.349479, "lng": -83.072432, "zone": null}, {"id": 19, "name": "Your Choice Flooring Inc", "address": "1409 Allen Dr # E, Troy, MI 48083", "lat": 42.547851, "lng": -83.136443, "zone": null}, {"id": 20, "name": "Ruth Casper Design Studio", "address": "1700 Stutz Dr # 102E, Troy, MI 48084", "lat": 42.544885, "lng": -83.161504, "zone": null}, {"id": 21, "name": "Quality Tile", "address": "3331 Gerald Ave, Rochester Hills, MI 48307", "lat": 42.684026, "lng": -83.12635, "zone": null}, {"id": 22, "name": "PMP Marble & Granite", "address": "1360 E Big Beaver Rd, Troy, MI 48083", "lat": 42.547198, "lng": -83.135309, "zone": null}, {"id": 23, "name": "Peter Basso Associates Inc", "address": "5145 Livernois Rd #100, Troy, MI 48098", "lat": 42.598928, "lng": -83.177285, "zone": null}, {"id": 24, "name": "Office Express", "address": "1280 E Big Beaver Rd, Troy, MI 48083", "lat": 42.577595, "lng": -83.124956, "zone": null}, {"id": 25, "name": "National Business Supply", "address": "2595 Bellingham Rd, Troy, MI 48083", "lat": 42.569094, "lng": -83.129308, "zone": null}, {"id": 26, "name": "Mondrian Properties LLC.", "address": "2113 Kohli Dr, Troy, MI 48083", "lat": 42.555678, "lng": -83.125828, "zone": null}, {"id": 27, "name": "M & N General Contracting LLC", "address": "972 Rankin St, Troy, MI 48083", "lat": 42.570492, "lng": -83.15479, "zone": null}, {"id": 28, "name": "Michigan Multi-King Inc", "address": "4897 Rochester Rd, Troy, MI 48085", "lat": 42.59654, "lng": -83.104845, "zone": null}, {"id": 29, "name": "Joseph Philip Craig Inc", "address": "2025 W Long Lake Rd, Troy, MI 48098", "lat": 42.565118, "lng": -83.177666, "zone": null}, {"id": 30, "name": "Integrated Design Solutions", "address": "1441 W Long Lake Rd #200, Troy, MI 48098", "lat": 42.582525, "lng": -83.169067, "zone": null}, {"id": 31, "name": "Gold Star Commercial, INC", "address": "264 Executive Dr, Troy, MI 48083", "lat": 42.562163, "lng": -83.151332, "zone": null}, {"id": 32, "name": "Gio-Con", "address": "2145 Crooks Rd #210, Troy, MI 48084", "lat": 42.518291, "lng": -83.188404, "zone": null}, {"id": 33, "name": "Gillete Brothers Pool & Spa", "address": "392 Oliver, Troy, MI 48084", "lat": 42.520897, "lng": -83.184355, "zone": null}, {"id": 34, "name": "Fairview Construction", "address": "1700 W Big Beaver Rd #120, Troy, MI 48084", "lat": 42.540613, "lng": -83.167611, "zone": null}, {"id": 35, "name": "Excel Floors, Inc", "address": "1715 Larchwood Ave, Troy, MI 48083", "lat": 42.561757, "lng": -83.13947, "zone": null}, {"id": 36, "name": "Ehresman Architects", "address": "801 W Big Beaver Rd #250, Troy, MI 48084", "lat": 42.539748, "lng": -83.162878, "zone": null}, {"id": 37, "name": "Cutting Edge Stonecraft, Inc.", "address": "24420 Indoplex Cir, Farmington Hills, MI 48335", "lat": 42.477048, "lng": -83.370371, "zone": null}, {"id": 38, "name": "Continental Interiors Inc", "address": "1210 E Maple Rd, Troy, MI 48083", "lat": 42.56788, "lng": -83.159236, "zone": null}, {"id": 39, "name": "BEI Architects", "address": "1333 Rochester Rd, Troy, MI 48083", "lat": 42.566179, "lng": -83.145739, "zone": null}, {"id": 40, "name": "Eldorado Tile & Marble", "address": "6506 Cotter Ave, Sterling Heights, MI 48314", "lat": 42.557294, "lng": -83.011684, "zone": null}, {"id": 41, "name": "Stone Warehouse USA - Michigan", "address": "7235 19 Mile Rd, Sterling Heights, MI 48314", "lat": 42.567244, "lng": -82.991985, "zone": null}, {"id": 42, "name": "PMS Brick Pavers We're The Guys", "address": "5540 Bridgewood Dr, Sterling Heights, MI 48310", "lat": 42.534141, "lng": -83.037871, "zone": null}, {"id": 43, "name": "Majestic Home Solutions LLC", "address": "42886 Mound Rd, Sterling Heights, MI 48314", "lat": 42.574477, "lng": -83.0261, "zone": null}, {"id": 44, "name": "Floorz Supplies Plus INC", "address": "34832 Mound Rd, Sterling Heights, MI 48310", "lat": 42.520442, "lng": -83.019251, "zone": null}, {"id": 45, "name": "Floor 4 Life", "address": "34800 Mound Rd, Sterling Heights, MI 48310", "lat": 42.535241, "lng": -83.025421, "zone": null}, {"id": 46, "name": "Eastside Tile And Marble", "address": "42700 Mound Rd, Sterling Heights, MI 48314", "lat": 42.559775, "lng": -83.007579, "zone": null}, {"id": 47, "name": "Great Lakes Tile & Contracting", "address": "42730 Mound Rd, Sterling Heights, MI 48314", "lat": 42.584431, "lng": -83.0111, "zone": null}, {"id": 48, "name": "DAS Architects", "address": "7341 Triangle Dr, Sterling Heights, MI 48314", "lat": 42.562974, "lng": -83.009893, "zone": null}, {"id": 49, "name": "The Cabinet Shoppe", "address": "32303 Harper Ave, St Clair Shores, MI 48082", "lat": 42.500826, "lng": -82.901224, "zone": null}, {"id": 50, "name": "Woodmaster Kitchens of Michigan", "address": "24420 Harper Ave, St Clair Shores, MI 48080", "lat": 42.461575, "lng": -82.88997, "zone": null}, {"id": 51, "name": "Red Baron Enterprises", "address": "20315 E 9 Mile Rd, St Clair Shores, MI 48080", "lat": 42.478801, "lng": -82.895853, "zone": null}, {"id": 52, "name": "Rabaut's Interiors", "address": "19513 Mack Ave, Grosse Pointe Woods, MI 48236", "lat": 42.428641, "lng": -82.896412, "zone": null}, {"id": 53, "name": "North American Construction Enterprises, LLC", "address": "22920 E Industrial Dr, St Clair Shores, MI 48080", "lat": 42.498034, "lng": -82.904319, "zone": null}, {"id": 54, "name": "Arkay-Walker Paint and Interior Design", "address": "27110 Harper Ave, St Clair Shores, MI 48081", "lat": 42.493586, "lng": -82.860894, "zone": null}, {"id": 55, "name": "ZeinaDesigns", "address": "29145 Telegraph Rd, Southfield, MI 48034", "lat": 42.500446, "lng": -83.284201, "zone": null}, {"id": 56, "name": "Lockwood Companies", "address": "27777 Franklin Rd #1410, Southfield, MI 48034", "lat": 42.467514, "lng": -83.251675, "zone": null}, {"id": 57, "name": "Land Design Studio", "address": "18161 13 Mile Rd # B4, Southfield, MI 48076", "lat": 42.502537, "lng": -83.21731, "zone": null}, {"id": 58, "name": "GREENWORKS Studio", "address": "28411 Northwestern Hwy #320, Southfield, MI 48034", "lat": 42.465603, "lng": -83.266113, "zone": null}, {"id": 59, "name": "Tableau", "address": "50215 Schoenherr Rd, Shelby Township, MI 48315", "lat": 42.70103, "lng": -83.036871, "zone": null}, {"id": 60, "name": "Szczesny Floor Covering", "address": "14240 Industrial Center Dr, Shelby Township, MI 48315", "lat": 42.686767, "lng": -83.007794, "zone": null}, {"id": 61, "name": "Shelby Floor and Tile", "address": "46511 Van Dyke Ave, Shelby Township, MI 48317", "lat": 42.660112, "lng": -83.051982, "zone": null}, {"id": 62, "name": "J M P Design & Build Inc.", "address": "51456 Oro Rd, Shelby Township, MI 48315", "lat": 42.697579, "lng": -83.022832, "zone": null}, {"id": 63, "name": "Bobak Construction LLC", "address": "54441 Arrowhead Dr, Shelby Township, MI 48315", "lat": 42.71492, "lng": -83.038179, "zone": null}, {"id": 64, "name": "Frank Salamone", "address": "48701 Hayes Rd, Shelby Township, MI 48315", "lat": 42.695606, "lng": -83.033336, "zone": null}, {"id": 65, "name": "Anderson, Eckstein & Westrick, Inc.", "address": "51301 Schoenherr Rd, Shelby Township, MI 48315", "lat": 42.696846, "lng": -83.019891, "zone": null}, {"id": 66, "name": "Nu-Way Kitchen & Bath", "address": "5227 Auburn Rd, Shelby Township, MI 48317", "lat": 42.66439, "lng": -83.063592, "zone": null}, {"id": 67, "name": "Xstyles bath+more", "address": "4812 Delemere Ave, Royal Oak, MI 48076", "lat": 42.466732, "lng": -83.222316, "zone": null}, {"id": 68, "name": "Wightman - Royal Oak", "address": "306 S Washington Ave Suite 200, Royal Oak, MI 48067", "lat": 42.471892, "lng": -83.13226, "zone": null}, {"id": 69, "name": "Whiski Kitchen Design Studio", "address": "1201 N Main St, Royal Oak, MI 48067", "lat": 42.498567, "lng": -83.125268, "zone": null}, {"id": 70, "name": "Von Staden Architects", "address": "504 S Washington Ave, Royal Oak, MI 48067", "lat": 42.49627, "lng": -83.159067, "zone": null}, {"id": 71, "name": "TVI Inc.", "address": "28966 Woodward Ave, Royal Oak, MI 48067", "lat": 42.505291, "lng": -83.151137, "zone": null}, {"id": 72, "name": "Space Care Interiors", "address": "210 W 6th St, Royal Oak, MI 48067", "lat": 42.48185, "lng": -83.138099, "zone": null}, {"id": 73, "name": "Shelter Design Studio", "address": "104 W 4th St #303, Royal Oak, MI 48067", "lat": 42.471837, "lng": -83.139126, "zone": null}, {"id": 74, "name": "Richard Ross Designs", "address": "2051 Villa Rd #104, Birmingham, MI 48009", "lat": 42.538093, "lng": -83.209614, "zone": null}, {"id": 75, "name": "R J Laney Design", "address": "4535 Fernlee Ave, Royal Oak, MI 48073", "lat": 42.523289, "lng": -83.162289, "zone": null}, {"id": 76, "name": "PARTNR HAUS Commercial Interiors", "address": "2120 E 11 Mile Rd, Royal Oak, MI 48067", "lat": 42.486934, "lng": -83.145435, "zone": null}, {"id": 77, "name": "Mosher Dolan", "address": "2725 Nakota Rd, Royal Oak, MI 48073", "lat": 42.503722, "lng": -83.144893, "zone": null}, {"id": 78, "name": "Moiseev-Gordon & Associates Inc", "address": "4351 Delemere Ct, Royal Oak, MI 48073", "lat": 42.520865, "lng": -83.169864, "zone": null}, {"id": 79, "name": "Live Well Custom Homes", "address": "626 E 4th St, Royal Oak, MI 48067", "lat": 42.501479, "lng": -83.159059, "zone": null}, {"id": 80, "name": "Krieger Klatt Architects", "address": "400 E Lincoln Ave, Royal Oak, MI 48067", "lat": 42.474713, "lng": -83.14892, "zone": null}, {"id": 81, "name": "Jeff Dawkins . Architect", "address": "2565 W Maple Rd #101, Troy, MI 48084", "lat": 42.52866, "lng": -83.171224, "zone": null}, {"id": 82, "name": "italmoda Modern Furniture", "address": "950 W Maple Rd, Troy, MI 48084", "lat": 42.538038, "lng": -83.174769, "zone": null}, {"id": 83, "name": "ISCG - Haworth Dealer", "address": "612 N Main St, Royal Oak, MI 48067", "lat": 42.474689, "lng": -83.143304, "zone": null}, {"id": 84, "name": "GMB", "address": "1041 S Main St #200, Royal Oak, MI 48067", "lat": 42.488746, "lng": -83.128629, "zone": null}, {"id": 85, "name": "G H Forbes Associates", "address": "816 E 4th St, Royal Oak, MI 48067", "lat": 42.498161, "lng": -83.126338, "zone": null}, {"id": 86, "name": "Executive Kitchens, Inc", "address": "32314 Woodward Ave, Royal Oak, MI 48073", "lat": 42.496884, "lng": -83.158298, "zone": null}, {"id": 87, "name": "Detroit Build, Inc.", "address": "1201 N Main St, Royal Oak, MI 48067", "lat": 42.500561, "lng": -83.161659, "zone": null}, {"id": 88, "name": "D MET studio architecture and design", "address": "832 W 11 Mile Rd, Royal Oak, MI 48067", "lat": 42.474738, "lng": -83.155333, "zone": null}, {"id": 89, "name": "Comprehensive Design Group", "address": "628 E Parent Ave #103, Royal Oak, MI 48067", "lat": 42.4848, "lng": -83.15532, "zone": null}, {"id": 90, "name": "Building Detail", "address": "1600 Rochester Rd, Royal Oak, MI 48067", "lat": 42.472144, "lng": -83.138628, "zone": null}, {"id": 91, "name": "Bourlier's Barbecue and Fireplace Inc.", "address": "32128 Woodward Ave, Royal Oak, MI 48073", "lat": 42.497047, "lng": -83.179192, "zone": null}, {"id": 92, "name": "Art-Harrison Interior Design", "address": "4339 Delemere Blvd, Royal Oak, MI 48073", "lat": 42.492241, "lng": -83.176005, "zone": null}, {"id": 93, "name": "Anderson-Miller", "address": "123 S Main St #230, Royal Oak, MI 48067", "lat": 42.485742, "lng": -83.140303, "zone": null}, {"id": 94, "name": "Shores Tile Co", "address": "29975 Little Mack Ave, Roseville, MI 48066", "lat": 42.525394, "lng": -82.926726, "zone": null}, {"id": 95, "name": "Shock Brothers Floor Covering", "address": "20320 Cornillie Dr, Roseville, MI 48066", "lat": 42.510772, "lng": -82.941535, "zone": null}, {"id": 96, "name": "Serra-Marko & Associates", "address": "1055 E South Blvd, Rochester Hills, MI 48307", "lat": 42.678206, "lng": -83.133247, "zone": null}, {"id": 97, "name": "Perfect Floors", "address": "1015 John R Rd, Rochester Hills, MI 48307", "lat": 42.662624, "lng": -83.117495, "zone": null}, {"id": 98, "name": "Bolyard Lumber & Design", "address": "3770 S Rochester Rd, Rochester Hills, MI 48307", "lat": 42.655581, "lng": -83.121557, "zone": null}, {"id": 99, "name": "Mercury Project", "address": "1806 Rochester Industrial Dr #200, Rochester Hills, MI 48309", "lat": 42.682056, "lng": -83.150554, "zone": null}, {"id": 100, "name": "Luxury Tile & Marble Co", "address": "3675 W Auburn Rd, Rochester Hills, MI 48309", "lat": 42.683959, "lng": -83.175797, "zone": null}, {"id": 101, "name": "L+A Architects", "address": "441 S Livernois Rd #265, Rochester Hills, MI 48307", "lat": 42.653627, "lng": -83.135603, "zone": null}, {"id": 102, "name": "EEI Global", "address": "1601 W Hamlin Rd, Rochester Hills, MI 48309", "lat": 42.691046, "lng": -83.17601, "zone": null}, {"id": 103, "name": "Design by Choice LLC", "address": "1700 Stutz Dr #104A, Troy, MI 48084", "lat": 42.523727, "lng": -83.168261, "zone": null}, {"id": 104, "name": "D'Anna Associates", "address": "1055 E South Blvd #200, Rochester Hills, MI 48307", "lat": 42.686962, "lng": -83.135548, "zone": null}, {"id": 105, "name": "Spire Design Group", "address": "115 E 4th St, Rochester, MI 48307", "lat": 42.686198, "lng": -83.118925, "zone": null}, {"id": 106, "name": "Niagara Murano LLC", "address": "2215 Cole St, Birmingham, MI 48009", "lat": 42.562024, "lng": -83.215735, "zone": null}, {"id": 107, "name": "LoChirco Custom Homes", "address": "202 Walnut Blvd Suite B, Rochester, MI 48307", "lat": 42.676227, "lng": -83.117756, "zone": null}, {"id": 108, "name": "Kendal & Company", "address": "1429 N Rochester Rd, Rochester Hills, MI 48307", "lat": 42.657659, "lng": -83.130548, "zone": null}, {"id": 109, "name": "French Associates", "address": "236 Mill St, Rochester, MI 48307", "lat": 42.653021, "lng": -83.121175, "zone": null}, {"id": 110, "name": "DMJ Interiors", "address": "312 East St, Rochester, MI 48307", "lat": 42.658983, "lng": -83.135429, "zone": null}, {"id": 111, "name": "Dillman & Upton", "address": "607 Woodward Ave, Rochester, MI 48307", "lat": 42.68517, "lng": -83.138279, "zone": null}, {"id": 112, "name": "Auger Klein Aller Architects", "address": "303 E 3rd St #100, Rochester, MI 48307", "lat": 42.680887, "lng": -83.145289, "zone": null}, {"id": 113, "name": "TDG Architects", "address": "79 Oakland Ave, Pontiac, MI 48342", "lat": 42.63815, "lng": -83.283056, "zone": null}, {"id": 114, "name": "Studio 5", "address": "40 W Howard St, Pontiac, MI 48342", "lat": 42.620122, "lng": -83.274995, "zone": null}, {"id": 115, "name": "Heller & Associates", "address": "7 S Perry St, Pontiac, MI 48342", "lat": 42.628537, "lng": -83.305785, "zone": null}, {"id": 116, "name": "Sage Home D\u00e9cor", "address": "795 S Lapeer Rd, Oxford, MI 48371", "lat": 42.843636, "lng": -83.281823, "zone": null}, {"id": 117, "name": "All American Floors", "address": "1772 S Ortonville Rd, Ortonville, MI 48462", "lat": 42.860654, "lng": -83.435708, "zone": null}, {"id": 118, "name": "PCI-Dailey Company", "address": "21717 Republic Ave, Oak Park, MI 48237", "lat": 42.448504, "lng": -83.196324, "zone": null}, {"id": 119, "name": "Alexandria Interiors LLC", "address": "43155 Main St, Novi, MI 48375", "lat": 42.487339, "lng": -83.482398, "zone": null}, {"id": 120, "name": "Vistal Homes", "address": "46870 W Seven Mile Rd, Northville, MI 48167", "lat": 42.455953, "lng": -83.492507, "zone": null}, {"id": 121, "name": "Martone Design Studio", "address": "120 W Main St, Northville, MI 48167", "lat": 42.439498, "lng": -83.492154, "zone": null}, {"id": 122, "name": "GTR Companies LLC", "address": "65 Macomb Pl, Mt Clemens, MI 48043", "lat": 42.582392, "lng": -82.873148, "zone": null}, {"id": 123, "name": "Partners in Architecture, PLC", "address": "65 Market St #200, Mt Clemens, MI 48043", "lat": 42.599301, "lng": -82.87262, "zone": null}, {"id": 124, "name": "Blackstock Alessandri Associates Llc", "address": "70 Macomb Pl Suite 220, Mt Clemens, MI 48043", "lat": 42.580995, "lng": -82.893013, "zone": null}, {"id": 125, "name": "Innovative Corporation Int", "address": "32384 Edward Ave, Madison Heights, MI 48071", "lat": 42.507331, "lng": -83.09517, "zone": null}, {"id": 126, "name": "Silva Custom Design LLC", "address": "515 E 10 Mile Rd, Madison Heights, MI 48071", "lat": 42.504902, "lng": -83.108199, "zone": null}, {"id": 127, "name": "NCS Construction Services LLC", "address": "876 Horace Brown Dr, Madison Heights, MI 48071", "lat": 42.491803, "lng": -83.093977, "zone": null}, {"id": 128, "name": "Namou Hotel Group", "address": "31100 Stephenson Hwy, Madison Heights, MI 48071", "lat": 42.470683, "lng": -83.092144, "zone": null}, {"id": 129, "name": "Kitchen & Bath By Rite-Way", "address": "32090 John R Rd, Madison Heights, MI 48071", "lat": 42.506501, "lng": -83.107634, "zone": null}, {"id": 130, "name": "Design Fabrications (DFab)", "address": "1100 E Mandoline Ave suite a, Madison Heights, MI 48071", "lat": 42.492344, "lng": -83.085819, "zone": null}, {"id": 131, "name": "Heritage Oaks", "address": "51194 Romeo Plank Rd #453, Macomb, MI 48042", "lat": 42.658591, "lng": -82.935567, "zone": null}, {"id": 132, "name": "Quicken Stones LLC", "address": "44884 Heydenreich Rd, Clinton Township, MI 48038", "lat": 42.581517, "lng": -82.935705, "zone": null}, {"id": 133, "name": "Musante Tile", "address": "48895 Fairchild Rd, Macomb, MI 48042", "lat": 42.654297, "lng": -82.930191, "zone": null}, {"id": 134, "name": "Hubert Contracting LLC", "address": "51410 Milano Dr, Macomb, MI 48042", "lat": 42.657553, "lng": -82.927206, "zone": null}, {"id": 135, "name": "Cwc Finished Basements", "address": "23035 Angel Park Dr, Macomb, MI 48042", "lat": 42.657165, "lng": -82.938549, "zone": null}, {"id": 136, "name": "Blue Mountain Construction Group", "address": "20371 Hall Rd, Macomb, MI 48044", "lat": 42.644581, "lng": -82.901481, "zone": null}, {"id": 137, "name": "SAA Architects", "address": "214 S Broadway St, Lake Orion, MI 48362", "lat": 42.750829, "lng": -83.238576, "zone": null}, {"id": 138, "name": "AV Design Kitchen + Bath", "address": "169w Clarkston Rd Suite 100, Orion Township, MI 48362", "lat": 42.730695, "lng": -83.243296, "zone": null}, {"id": 139, "name": "Stellar Building and Development", "address": "24410 John R Rd, Hazel Park, MI 48030", "lat": 42.446637, "lng": -83.099096, "zone": null}, {"id": 140, "name": "Designstruct Inc.", "address": "23617 John R Rd, Hazel Park, MI 48030", "lat": 42.43896, "lng": -83.089301, "zone": null}, {"id": 141, "name": "Continental Contracting Co., LLC", "address": "23450 Telegraph Rd, Southfield, MI 48033", "lat": 42.474764, "lng": -83.2959, "zone": null}, {"id": 142, "name": "Omega Floors", "address": "35370 Union Lake Rd, Harrison Township, MI 48045", "lat": 42.559593, "lng": -82.845292, "zone": null}, {"id": 143, "name": "American Community Developers", "address": "20250 Harper Ave, Harper Woods, MI 48225", "lat": 42.432204, "lng": -82.919292, "zone": null}, {"id": 144, "name": "Steven C Flum Inc", "address": "3105 Holbrook, Hamtramck, MI 48212", "lat": 42.405155, "lng": -83.043044, "zone": null}, {"id": 145, "name": "Nitsas Interiors", "address": "20445 Mack Ave, Grosse Pointe Woods, MI 48236", "lat": 42.436831, "lng": -82.898324, "zone": null}, {"id": 146, "name": "Ann-Marie Anton", "address": "1835 Fleetwood Dr, Grosse Pointe Woods, MI 48236", "lat": 42.453719, "lng": -82.884257, "zone": null}, {"id": 147, "name": "Decor and More Design Studio", "address": "319 Fisher Rd, Grosse Pointe, MI 48230", "lat": 42.404233, "lng": -82.911567, "zone": null}, {"id": 148, "name": "Diane Woolsey Interiors LLC", "address": "86 Kercheval Ave, Grosse Pointe Farms, MI 48236", "lat": 42.44311, "lng": -82.910548, "zone": null}, {"id": 149, "name": "Russo Bennett Associates", "address": "34517 Utica Rd, Fraser, MI 48026", "lat": 42.53504, "lng": -82.941059, "zone": null}, {"id": 150, "name": "Rapid Recovery Service", "address": "18377 E 14 Mile Rd, Fraser, MI 48026", "lat": 42.521744, "lng": -82.956431, "zone": null}, {"id": 151, "name": "32205 Groesbeck Hwy", "address": "32205 Groesbeck Hwy, Fraser, MI 48026", "lat": 42.551852, "lng": -82.930692, "zone": null}, {"id": 152, "name": "CONSTRUCTEAM", "address": "31780 Groesbeck Hwy, Fraser, MI 48026", "lat": 42.547163, "lng": -82.932661, "zone": null}, {"id": 153, "name": "Zoyes Creative - Ferndale", "address": "1280 Hilton Rd, Ferndale, MI 48220", "lat": 42.478006, "lng": -83.137242, "zone": null}, {"id": 154, "name": "Zoyes Creative - Brand Studio", "address": "2111 Woodward Ave Suite 400, Detroit, MI 48201", "lat": 42.378335, "lng": -83.081673, "zone": null}, {"id": 155, "name": "United Building Service Co", "address": "2870 Hilton Rd, Ferndale, MI 48220", "lat": 42.447026, "lng": -83.116013, "zone": null}, {"id": 156, "name": "Towers Interior Group", "address": "31500 Northwestern Hwy, Farmington Hills, MI 48334", "lat": 42.507135, "lng": -83.328125, "zone": null}, {"id": 157, "name": "Northern Equities Group", "address": "39000 Country Club Dr, Farmington Hills, MI 48331", "lat": 42.483411, "lng": -83.334142, "zone": null}, {"id": 158, "name": "MFG Interiors", "address": "39255 Country Club Dr, Farmington Hills, MI 48331", "lat": 42.488366, "lng": -83.360708, "zone": null}, {"id": 159, "name": "Interior Image", "address": "37680 Hills Tech Dr, Farmington Hills, MI 48331", "lat": 42.49127, "lng": -83.32988, "zone": null}, {"id": 160, "name": "Waldorf Floors LLC", "address": "24798 Crestview, Farmington Hills, MI 48335", "lat": 42.479681, "lng": -83.382799, "zone": null}, {"id": 161, "name": "Empire Tile & Marble Co.", "address": "17255 Stephens Rd, Eastpointe, MI 48021", "lat": 42.453801, "lng": -82.962773, "zone": null}, {"id": 162, "name": "Sterling Group", "address": "Fort Washington Plaza, 333 W Fort St #1350, Detroit, MI 48226", "lat": 42.329328, "lng": -83.042687, "zone": null}, {"id": 163, "name": "Scales & Associates Inc", "address": "28 W Adams Ave # 1100, Detroit, MI 48226", "lat": 42.310748, "lng": -83.028582, "zone": null}, {"id": 164, "name": "RVSN Studios", "address": "300 Riverfront Dr, Detroit, MI 48226", "lat": 42.330257, "lng": -83.046416, "zone": null}, {"id": 165, "name": "Resendes Design Group", "address": "7451 3rd Ave, Detroit, MI 48202", "lat": 42.352413, "lng": -83.082659, "zone": null}, {"id": 166, "name": "Redbird Detroit", "address": "4474 3rd Ave, Detroit, MI 48201", "lat": 42.339273, "lng": -83.046227, "zone": null}, {"id": 167, "name": "Populous", "address": "19 Clifford St Suite 08-101, Detroit, MI 48226", "lat": 42.315749, "lng": -83.04057, "zone": null}, {"id": 168, "name": "Pophouse", "address": "1150 Griswold St, Detroit, MI 48226", "lat": 42.317753, "lng": -83.061185, "zone": null}, {"id": 169, "name": "NXT Design", "address": "1420 Washington Blvd #301, Detroit, MI 48226", "lat": 42.338422, "lng": -83.044019, "zone": null}, {"id": 170, "name": "NORR", "address": "150 W Jefferson Ave Suite 1300, Detroit, MI 48226", "lat": 42.318821, "lng": -83.039711, "zone": null}, {"id": 171, "name": "M1DTW Architects", "address": "1948 Division St, Detroit, MI 48207", "lat": 42.360096, "lng": -82.998304, "zone": null}, {"id": 172, "name": "Las Vegas Stone Flooring Inc", "address": "11343 Schaefer Hwy, Detroit, MI 48227", "lat": 42.399862, "lng": -83.142227, "zone": null}, {"id": 173, "name": "Infuz Architects", "address": "1451 Bagley St Suite 7, Detroit, MI 48216", "lat": 42.332701, "lng": -83.09614, "zone": null}, {"id": 174, "name": "Harris Design Group", "address": "15 E Kirby St, Detroit, MI 48202", "lat": 42.361565, "lng": -83.067956, "zone": null}, {"id": 175, "name": "Hamilton Anderson Associates", "address": "1435 Randolph Street #200, Detroit, MI 48226", "lat": 42.340764, "lng": -83.047013, "zone": null}, {"id": 176, "name": "Gensler", "address": "1265 Griswold St, Detroit, MI 48226", "lat": 42.326358, "lng": -83.062627, "zone": null}, {"id": 177, "name": "Ferlito Group", "address": "440 Selden St, Detroit, MI 48201", "lat": 42.339788, "lng": -83.054003, "zone": null}, {"id": 178, "name": "Et Al Collaborative of Detroit", "address": "2020 14th St, Detroit, MI 48216", "lat": 42.357314, "lng": -83.084759, "zone": null}, {"id": 179, "name": "Drinks Design", "address": "1051 Bellevue St, Detroit, MI 48207", "lat": 42.366545, "lng": -82.996442, "zone": null}, {"id": 180, "name": "Bedrock", "address": "630 Woodward Ave, Detroit, MI 48226", "lat": 42.34466, "lng": -83.056773, "zone": null}, {"id": 181, "name": "Archive Design Studio", "address": "615 Griswold St #916, Detroit, MI 48226", "lat": 42.31437, "lng": -83.037725, "zone": null}, {"id": 182, "name": "Albert Kahn Associates, Inc.", "address": "Fisher Bldg, 3011 W Grand Blvd #1800, Detroit, MI 48202", "lat": 42.371838, "lng": -83.090488, "zone": null}, {"id": 183, "name": "Winton Flooring and Design", "address": "8348 Richardson Rd, Commerce Township, MI 48382", "lat": 42.586983, "lng": -83.520362, "zone": null}, {"id": 184, "name": "Ultra Floors, Inc.", "address": "40210 Hayes Rd, Clinton Township, MI 48038", "lat": 42.573218, "lng": -82.936602, "zone": null}, {"id": 185, "name": "SDA Architects", "address": "42490 Garfield Rd Suite 204, Clinton Township, MI 48038", "lat": 42.579937, "lng": -82.95688, "zone": null}, {"id": 186, "name": "SBW Architects LLC", "address": "36358 Garfield Rd, Clinton Township, MI 48035", "lat": 42.574909, "lng": -82.91431, "zone": null}, {"id": 187, "name": "Leonard C Carnaghi Inc", "address": "24388 Sorrentino Ct, Clinton Township, MI 48035", "lat": 42.552592, "lng": -82.929916, "zone": null}, {"id": 188, "name": "Kulbacki Inc", "address": "35480 Forton Ct, Clinton Township, MI 48035", "lat": 42.552949, "lng": -82.927485, "zone": null}, {"id": 189, "name": "Gable and Company", "address": "39103 Garfield Rd, Clinton Township, MI 48038", "lat": 42.600487, "lng": -82.932805, "zone": null}, {"id": 190, "name": "Innoative Engineered Solutions", "address": "17001 19 Mile Rd, Clinton Township, MI 48038", "lat": 42.588237, "lng": -82.936737, "zone": null}, {"id": 191, "name": "Complete Kitchen Design", "address": "33827 Harper Ave, Clinton Township, MI 48035", "lat": 42.541883, "lng": -82.91643, "zone": null}, {"id": 192, "name": "Cabinets by Cantu", "address": "44930 Vic Wertz Dr, Clinton Township, MI 48036", "lat": 42.589267, "lng": -82.905017, "zone": null}, {"id": 193, "name": "Advanced Landscape & Builders Supply Co.", "address": "890 Rochester Rd, Clawson, MI 48017", "lat": 42.523833, "lng": -83.150925, "zone": null}, {"id": 194, "name": "Studio Fraifogl", "address": "6825 Dixie Hwy, Village of Clarkston, MI 48346", "lat": 42.730272, "lng": -83.404253, "zone": null}, {"id": 195, "name": "Chris Morgan and Associates", "address": "4435 Newcastle Dr, Village of Clarkston, MI 48348", "lat": 42.750396, "lng": -83.447011, "zone": null}, {"id": 196, "name": "Window PlusHome Pro USA", "address": "6490 E 10 Mile Rd, Center Line, MI 48015", "lat": 42.482721, "lng": -83.045414, "zone": null}, {"id": 197, "name": "Quarry Gardens", "address": "9376 Marine City Hwy, Casco, MI 48064", "lat": 42.784876, "lng": -82.748057, "zone": null}, {"id": 198, "name": "Advance Tile & Marble Inc - Tile Installation with Professional Installers", "address": "3250 Church Rd, Casco, MI 48064", "lat": 42.780495, "lng": -82.771199, "zone": null}, {"id": 199, "name": "MWHS", "address": "330 Enterprise Ct, Bloomfield Township, MI 48302", "lat": 42.566019, "lng": -83.281241, "zone": null}, {"id": 200, "name": "SLS Designs Inc", "address": "43700 Woodward Ave, Bloomfield Township, MI 48302", "lat": 42.57767, "lng": -83.293971, "zone": null}, {"id": 201, "name": "Rariden Schumacher Mio & Co", "address": "35980 Woodward Ave #150, Bloomfield Hills, MI 48304", "lat": 42.545724, "lng": -83.261562, "zone": null}, {"id": 202, "name": "Penske Automotive Group, Inc.", "address": "2555 S Telegraph Rd, Bloomfield Hills, MI 48302", "lat": 42.566584, "lng": -83.296676, "zone": null}, {"id": 203, "name": "Marusich Architecture", "address": "36880 Woodward Ave, Bloomfield Hills, MI 48304", "lat": 42.574455, "lng": -83.243909, "zone": null}, {"id": 204, "name": "Kojaian Management Corporation", "address": "39400 Woodward Ave #250, Bloomfield Hills, MI 48304", "lat": 42.54753, "lng": -83.236016, "zone": null}, {"id": 205, "name": "Hunter Roberts Homes", "address": "36800 Woodward Ave #200, Bloomfield Hills, MI 48304", "lat": 42.559776, "lng": -83.266282, "zone": null}, {"id": 206, "name": "Edward Rose & Sons", "address": "38525 Woodward Ave, Bloomfield Hills, MI 48304", "lat": 42.561277, "lng": -83.240718, "zone": null}, {"id": 207, "name": "Dokan Construction", "address": "42690 Woodward Ave, Bloomfield Hills, MI 48304", "lat": 42.544246, "lng": -83.257496, "zone": null}, {"id": 208, "name": "Contour Companies", "address": "40950 Woodward Ave #300, Bloomfield Hills, MI 48304", "lat": 42.564139, "lng": -83.242937, "zone": null}, {"id": 209, "name": "McLeod Carpet One Floor & Home", "address": "42598 Woodward Ave, Bloomfield Hills, MI 48304", "lat": 42.555062, "lng": -83.238477, "zone": null}, {"id": 210, "name": "111 S Old Woodward Ave", "address": "111 S Old Woodward Ave, Birmingham, MI 48009", "lat": 42.549182, "lng": -83.228766, "zone": null}, {"id": 211, "name": "JSK Design", "address": "31333 Southfield Rd, Beverly Hills, MI 48025", "lat": 42.514288, "lng": -83.212477, "zone": null}, {"id": 212, "name": "Saroki Architecture", "address": "430 N Old Woodward Ave, Birmingham, MI 48009", "lat": 42.549496, "lng": -83.200069, "zone": null}, {"id": 213, "name": "Sanda Johnstone Design Association", "address": "950 E Maple Rd, Birmingham, MI 48009", "lat": 42.542751, "lng": -83.190405, "zone": null}, {"id": 214, "name": "Ron & Roman LLC", "address": "275 E Frank St, Birmingham, MI 48009", "lat": 42.532986, "lng": -83.22088, "zone": null}, {"id": 215, "name": "Posh Interior Studios", "address": "107 Townsend St, Birmingham, MI 48009", "lat": 42.547591, "lng": -83.215486, "zone": null}, {"id": 216, "name": "Pazzi Inc", "address": "395 E Maple Rd, Birmingham, MI 48009", "lat": 42.528662, "lng": -83.192934, "zone": null}, {"id": 217, "name": "NH Ziegelman Architects LLC", "address": "800 N Old Woodward Ave, Birmingham, MI 48009", "lat": 42.56125, "lng": -83.204021, "zone": null}, {"id": 218, "name": "Michael Willoughby & Associates-Architects", "address": "880 S Old Woodward Ave #210, Birmingham, MI 48009", "lat": 42.565313, "lng": -83.220276, "zone": null}, {"id": 219, "name": "Merien Daka Design Group", "address": "187 S Old Woodward Ave # 250, Birmingham, MI 48009", "lat": 42.538914, "lng": -83.225348, "zone": null}, {"id": 220, "name": "Meg Corley Interiors", "address": "2051 Villa Rd #105, Birmingham, MI 48009", "lat": 42.554829, "lng": -83.21609, "zone": null}, {"id": 221, "name": "McIntosh Poris Architects", "address": "36801 Woodward Ave, Birmingham, MI 48009", "lat": 42.5568, "lng": -83.22038, "zone": null}, {"id": 222, "name": "Marianne Jones Interior Design", "address": "2003 Cole St, Birmingham, MI 48009", "lat": 42.536719, "lng": -83.225956, "zone": null}, {"id": 223, "name": "Luckenbach Ziegelman Architects", "address": "555 S Old Woodward Ave Suite 27L, Birmingham, MI 48009", "lat": 42.558053, "lng": -83.22029, "zone": null}, {"id": 224, "name": "Kevin Hart Associates", "address": "405 S Eton St, Birmingham, MI 48009", "lat": 42.540184, "lng": -83.212108, "zone": null}, {"id": 225, "name": "Jeffrey King Interiors", "address": "2253 Cole St, Birmingham, MI 48009", "lat": 42.529451, "lng": -83.222099, "zone": null}, {"id": 226, "name": "James Douglas Interiors LLC - Interior Designs", "address": "2007 Cole St, Birmingham, MI 48009", "lat": 42.554902, "lng": -83.220121, "zone": null}, {"id": 227, "name": "Homework Interiors", "address": "s Rail District, 2239 Cole St, Birmingham, MI 48009", "lat": 42.546262, "lng": -83.195432, "zone": null}, {"id": 228, "name": "Gregory Aerts & Associates", "address": "132 N Old Woodward Ave, Birmingham, MI 48009", "lat": 42.542862, "lng": -83.197057, "zone": null}, {"id": 229, "name": "Glenda Meads Architects", "address": "114 S Old Woodward Ave, Birmingham, MI 48009", "lat": 42.563685, "lng": -83.201883, "zone": null}, {"id": 230, "name": "Designs Unlimited Custom Cabinetry", "address": "104 Willits St, Birmingham, MI 48009", "lat": 42.548052, "lng": -83.220692, "zone": null}, {"id": 231, "name": "DesignTeam Plus, Inc.", "address": "975 E Maple Rd #210, Birmingham, MI 48009", "lat": 42.5551, "lng": -83.217622, "zone": null}, {"id": 232, "name": "De Giulio Kitchen Studio", "address": "34222 Woodward Ave, Birmingham, MI 48009", "lat": 42.56108, "lng": -83.191216, "zone": null}, {"id": 233, "name": "Craig Steinhous & Associates Inc", "address": "187 S Old Woodward Ave, Birmingham, MI 48009", "lat": 42.538141, "lng": -83.220372, "zone": null}, {"id": 234, "name": "Brookside Residences", "address": "369 N Old Woodward Ave, Birmingham, MI 48009", "lat": 42.554199, "lng": -83.204567, "zone": null}, {"id": 235, "name": "Brian Neeper Architecture", "address": "259 E Frank St, Birmingham, MI 48009", "lat": 42.540574, "lng": -83.195076, "zone": null}, {"id": 236, "name": "Birmingham Kitchen Baths", "address": "363 E Maple Rd, Birmingham, MI 48009", "lat": 42.540773, "lng": -83.209112, "zone": null}, {"id": 237, "name": "PDC Designs", "address": "31455 Southfield Rd, Beverly Hills, MI 48025", "lat": 42.52583, "lng": -83.219888, "zone": null}, {"id": 238, "name": "Kalabat Development & Construction", "address": "31333 Southfield Rd Suite 250, Beverly Hills, MI 48025", "lat": 42.523801, "lng": -83.203498, "zone": null}, {"id": 239, "name": "Gala & Associates Inc", "address": "31455 Southfield Rd # 202, Beverly Hills, MI 48025", "lat": 42.530735, "lng": -83.236103, "zone": null}, {"id": 240, "name": "William Ellis Co", "address": "3311 12 Mile Rd #2, Berkley, MI 48072", "lat": 42.483649, "lng": -83.169796, "zone": null}, {"id": 241, "name": "D & S Contractors", "address": "3500 W Eleven Mile Rd, Berkley, MI 48072", "lat": 42.513457, "lng": -83.200554, "zone": null}, {"id": 242, "name": "Cobblestone Kitchen & Bath", "address": "3311 12 Mile Rd, Berkley, MI 48072", "lat": 42.506426, "lng": -83.172771, "zone": null}, {"id": 243, "name": "Avenue Group Real Estate", "address": "2985 12 Mile Rd, Berkley, MI 48072", "lat": 42.492314, "lng": -83.183056, "zone": null}, {"id": 244, "name": "Finished Spaces LLC", "address": "3300 Auburn Rd Suite #210, Auburn Hills, MI 48326", "lat": 42.66692, "lng": -83.228673, "zone": null}, {"id": 245, "name": "Fieldstone Architecture & Engineering", "address": "3400 Auburn Rd #200, Auburn Hills, MI 48326", "lat": 42.665648, "lng": -83.218157, "zone": null}, {"id": 246, "name": "Romeo Kitchen & Bath LLC", "address": "80720 Capac Rd, Armada, MI 48005", "lat": 42.822833, "lng": -82.897666, "zone": null}, {"id": 247, "name": "Designhaus Architecture", "address": "3300 Auburn Rd Suite 300, Auburn Hills, MI 48326", "lat": 42.664883, "lng": -83.229033, "zone": null}, {"id": 248, "name": "Thompson-Phelan Group Inc", "address": "9834 Dixie Hwy, Ira Township, MI 48023", "lat": 42.71723, "lng": -82.735654, "zone": null}];
+
+        // Zone colors
+        const zoneColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E9', '#F1948A', '#82E0AA', '#F8B500', '#00CED1',
+            '#FF7F50', '#9FE2BF', '#DE3163', '#40E0D0', '#CCCCFF', '#FFB347', '#77DD77',
+            '#FF6961', '#AEC6CF', '#FDFD96', '#836953'
+        ];
+
+        // App state
+        let currentUser = null;
+        let locations = [];
+        let zones = [];
+        let markers = {};
+        let map = null;
+        let editingLocationId = null;
+        let maxPerZone = 15;
+
+        // Initialize the app
+        function init() {
+            // Initialize map
+            map = L.map('map').setView([42.5, -83.1], 10);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+            }).addTo(map);
+
+            // Check for saved session
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                loadUserData();
+                updateUI();
+            }
+
+            // Event listeners
+            document.getElementById('loginBtn').addEventListener('click', () => {
+                if (currentUser) {
+                    logout();
+                } else {
+                    openModal('loginModal');
+                }
+            });
+
+            document.getElementById('addLocationBtn').addEventListener('click', () => {
+                editingLocationId = null;
+                document.getElementById('editModalTitle').textContent = 'Add New Location';
+                document.getElementById('editName').value = '';
+                document.getElementById('editAddress').value = '';
+                document.getElementById('editLat').value = '';
+                document.getElementById('editLng').value = '';
+                updateZoneSelect();
+                openModal('editModal');
+            });
+
+            document.getElementById('sortSelect').addEventListener('change', renderLocationList);
+
+            document.getElementById('maxPerZone').addEventListener('change', (e) => {
+                maxPerZone = parseInt(e.target.value) || 15;
+                recalibrateZones();
+            });
+
+            document.getElementById('recalibrateAll').addEventListener('click', recalibrateZones);
+            document.getElementById('addZoneBtn').addEventListener('click', () => openModal('addZoneModal'));
+        }
+
+        // User management
+        function handleLogin() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Check for Chris's credentials
+            if (username === 'chris' && password === 'beaver') {
+                currentUser = { username: 'chris', isAdmin: true };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // Load Chris's locations
+                locations = [...chrisLocations];
+                saveUserData();
+                recalibrateZones();
+                closeModal('loginModal');
+                updateUI();
+            } else {
+                // Check other users
+                const users = JSON.parse(localStorage.getItem('users') || '{}');
+                if (users[username] && users[username].password === password) {
+                    currentUser = { username: username, isAdmin: false };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    loadUserData();
+                    closeModal('loginModal');
+                    updateUI();
+                } else {
+                    alert('Invalid credentials');
+                }
+            }
+        }
+
+        function handleCreateAccount() {
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!username || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            if (username === 'chris') {
+                alert('Username not available');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[username]) {
+                alert('Username already exists');
+                return;
+            }
+
+            users[username] = { password: password };
+            localStorage.setItem('users', JSON.stringify(users));
+
+            currentUser = { username: username, isAdmin: false };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            locations = [];
+            zones = [];
+            saveUserData();
+            closeModal('createAccountModal');
+            updateUI();
+        }
+
+        function continueAsGuest() {
+            currentUser = { username: 'Guest', isGuest: true };
+            locations = [];
+            zones = [];
+            recalibrateZones();
+            closeModal('loginModal');
+            updateUI();
+        }
+
+        function createAccount() {
+            closeModal('loginModal');
+            openModal('createAccountModal');
+        }
+
+        function logout() {
+            currentUser = null;
+            locations = [];
+            zones = [];
+            localStorage.removeItem('currentUser');
+            clearMap();
+            updateUI();
+        }
+
+        function loadUserData() {
+            if (!currentUser) return;
+
+            if (currentUser.username === 'chris' && currentUser.isAdmin) {
+                // Load Chris's data or default to pre-loaded
+                const savedData = localStorage.getItem('userData_chris');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    locations = data.locations || [...chrisLocations];
+                    zones = data.zones || [];
+                } else {
+                    locations = [...chrisLocations];
+                    zones = [];
+                }
+            } else if (!currentUser.isGuest) {
+                const savedData = localStorage.getItem('userData_' + currentUser.username);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    locations = data.locations || [];
+                    zones = data.zones || [];
+                }
+            }
+
+            if (zones.length === 0) {
+                recalibrateZones();
+            } else {
+                renderAll();
+            }
+        }
+
+        function saveUserData() {
+            if (!currentUser || currentUser.isGuest) return;
+
+            const data = { locations, zones };
+            localStorage.setItem('userData_' + currentUser.username, JSON.stringify(data));
+        }
+
+        // Zone clustering using K-means style algorithm
+        function recalibrateZones() {
+            if (locations.length === 0) {
+                zones = [];
+                renderAll();
+                return;
+            }
+
+            // Calculate optimal number of zones
+            let numZones = Math.ceil(locations.length / maxPerZone);
+            numZones = Math.min(numZones, 25);
+            numZones = Math.max(numZones, 1);
+
+            // Initialize zone centers using K-means++
+            const centers = [];
+            centers.push(locations[Math.floor(Math.random() * locations.length)]);
+
+            while (centers.length < numZones) {
+                let maxDist = 0;
+                let farthestLoc = locations[0];
+
+                for (const loc of locations) {
+                    let minDistToCenter = Infinity;
+                    for (const center of centers) {
+                        const dist = getDistance(loc.lat, loc.lng, center.lat, center.lng);
+                        minDistToCenter = Math.min(minDistToCenter, dist);
+                    }
+                    if (minDistToCenter > maxDist) {
+                        maxDist = minDistToCenter;
+                        farthestLoc = loc;
+                    }
+                }
+                centers.push({ lat: farthestLoc.lat, lng: farthestLoc.lng });
+            }
+
+            // Assign locations to zones
+            zones = centers.map((center, i) => ({
+                id: i + 1,
+                name: 'Zone ' + (i + 1),
+                color: zoneColors[i % zoneColors.length],
+                lat: center.lat,
+                lng: center.lng
+            }));
+
+            // Iterative assignment with max limit
+            for (let iter = 0; iter < 10; iter++) {
+                const zoneCounts = {};
+                zones.forEach(z => zoneCounts[z.id] = 0);
+
+                // Sort locations by distance to nearest zone center
+                const locationsWithDist = locations.map(loc => {
+                    let minDist = Infinity;
+                    let nearestZone = zones[0];
+                    for (const zone of zones) {
+                        const dist = getDistance(loc.lat, loc.lng, zone.lat, zone.lng);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestZone = zone;
+                        }
+                    }
+                    return { loc, minDist, nearestZone };
+                });
+
+                locationsWithDist.sort((a, b) => a.minDist - b.minDist);
+
+                // Assign locations
+                for (const item of locationsWithDist) {
+                    // Find best zone that isn't full
+                    let assigned = false;
+                    const sortedZones = [...zones].sort((a, b) => {
+                        const distA = getDistance(item.loc.lat, item.loc.lng, a.lat, a.lng);
+                        const distB = getDistance(item.loc.lat, item.loc.lng, b.lat, b.lng);
+                        return distA - distB;
+                    });
+
+                    for (const zone of sortedZones) {
+                        if (zoneCounts[zone.id] < maxPerZone) {
+                            item.loc.zone = zone.id;
+                            zoneCounts[zone.id]++;
+                            assigned = true;
+                            break;
+                        }
+                    }
+
+                    if (!assigned) {
+                        item.loc.zone = zones[0].id;
+                    }
+                }
+
+                // Update zone centers
+                for (const zone of zones) {
+                    const zoneLocations = locations.filter(l => l.zone === zone.id);
+                    if (zoneLocations.length > 0) {
+                        zone.lat = zoneLocations.reduce((sum, l) => sum + l.lat, 0) / zoneLocations.length;
+                        zone.lng = zoneLocations.reduce((sum, l) => sum + l.lng, 0) / zoneLocations.length;
+                    }
+                }
+            }
+
+            // Remove empty zones
+            const usedZoneIds = new Set(locations.map(l => l.zone));
+            zones = zones.filter(z => usedZoneIds.has(z.id));
+
+            saveUserData();
+            renderAll();
+        }
+
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const R = 3959; // Earth's radius in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Rendering functions
+        function renderAll() {
+            clearMap();
+            renderMarkers();
+            renderZoneList();
+            renderLocationList();
+            updateStats();
+        }
+
+        function clearMap() {
+            Object.values(markers).forEach(m => map.removeLayer(m));
+            markers = {};
+        }
+
+        function renderMarkers() {
+            locations.forEach(loc => {
+                const zone = zones.find(z => z.id === loc.zone) || { color: '#888' };
+
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${zone.color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white;"></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
+
+                marker.bindPopup(`
+                    <div class="popup-title">${loc.name}</div>
+                    <div class="popup-address">${loc.address}</div>
+                    <div class="popup-zone">Zone: ${zone.name || 'Unassigned'}</div>
+                    <button class="popup-btn" onclick="editLocation(${loc.id})">Edit Location</button>
+                `);
+
+                markers[loc.id] = marker;
+            });
+
+            // Fit map to bounds
+            if (locations.length > 0) {
+                const bounds = L.latLngBounds(locations.map(l => [l.lat, l.lng]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        function renderZoneList() {
+            const container = document.getElementById('zoneList');
+            container.innerHTML = '';
+
+            zones.forEach(zone => {
+                const count = locations.filter(l => l.zone === zone.id).length;
+                const div = document.createElement('div');
+                div.className = 'zone-item';
+                div.innerHTML = `
+                    <div class="zone-info">
+                        <div class="zone-color" style="background: ${zone.color}"></div>
+                        <span>${zone.name}</span>
+                    </div>
+                    <span class="zone-count">${count}</span>
+                    <div class="zone-actions">
+                        <button class="btn-icon delete" onclick="deleteZone(${zone.id})" title="Delete Zone">×</button>
+                    </div>
+                `;
+                div.onclick = (e) => {
+                    if (!e.target.closest('.zone-actions')) {
+                        focusZone(zone.id);
+                    }
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function renderLocationList() {
+            const container = document.getElementById('locationList');
+            const sortBy = document.getElementById('sortSelect').value;
+
+            let sortedLocations = [...locations];
+            if (sortBy === 'name') {
+                sortedLocations.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortBy === 'zone') {
+                sortedLocations.sort((a, b) => (a.zone || 0) - (b.zone || 0));
+            } else if (sortBy === 'address') {
+                sortedLocations.sort((a, b) => a.address.localeCompare(b.address));
+            }
+
+            container.innerHTML = '';
+            sortedLocations.forEach(loc => {
+                const zone = zones.find(z => z.id === loc.zone) || { color: '#888', name: 'Unassigned' };
+                const div = document.createElement('div');
+                div.className = 'location-item';
+                div.innerHTML = `
+                    <div class="location-zone-color" style="background: ${zone.color}"></div>
+                    <div class="location-details">
+                        <div class="location-name">${loc.name}</div>
+                        <div class="location-address">${loc.address} (${zone.name})</div>
+                    </div>
+                    <div class="location-actions">
+                        <button class="btn-icon" onclick="editLocation(${loc.id})" title="Recalibrate">⚙️</button>
+                        <button class="btn-icon" onclick="focusLocation(${loc.id})" title="View on Map">📍</button>
+                        <button class="btn-icon delete" onclick="deleteLocation(${loc.id})" title="Delete">🗑️</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = locations.length;
+            document.getElementById('zoneCount').textContent = zones.length;
+        }
+
+        function updateUI() {
+            const badge = document.getElementById('userBadge');
+            const btn = document.getElementById('loginBtn');
+
+            if (currentUser) {
+                badge.textContent = currentUser.username;
+                btn.textContent = 'Logout';
+            } else {
+                badge.textContent = 'Not logged in';
+                btn.textContent = 'Login';
+            }
+
+            renderAll();
+        }
+
+        // Location management
+        function editLocation(id) {
+            const loc = locations.find(l => l.id === id);
+            if (!loc) return;
+
+            editingLocationId = id;
+            document.getElementById('editModalTitle').textContent = 'Edit Location';
+            document.getElementById('editName').value = loc.name;
+            document.getElementById('editAddress').value = loc.address;
+            document.getElementById('editLat').value = loc.lat;
+            document.getElementById('editLng').value = loc.lng;
+            updateZoneSelect(loc.zone);
+            openModal('editModal');
+        }
+
+        function updateZoneSelect(selectedZone) {
+            const select = document.getElementById('editZone');
+            select.innerHTML = '<option value="auto">Auto-assign</option>';
+            zones.forEach(zone => {
+                const option = document.createElement('option');
+                option.value = zone.id;
+                option.textContent = zone.name;
+                if (selectedZone === zone.id) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        function saveLocation() {
+            const name = document.getElementById('editName').value;
+            const address = document.getElementById('editAddress').value;
+            const lat = parseFloat(document.getElementById('editLat').value);
+            const lng = parseFloat(document.getElementById('editLng').value);
+            const zoneValue = document.getElementById('editZone').value;
+
+            if (!name || !address) {
+                alert('Please fill in name and address');
+                return;
+            }
+
+            if (editingLocationId) {
+                // Update existing
+                const loc = locations.find(l => l.id === editingLocationId);
+                if (loc) {
+                    loc.name = name;
+                    loc.address = address;
+                    if (!isNaN(lat)) loc.lat = lat;
+                    if (!isNaN(lng)) loc.lng = lng;
+                    if (zoneValue !== 'auto') {
+                        loc.zone = parseInt(zoneValue);
+                    }
+                }
+            } else {
+                // Add new
+                const newId = locations.length > 0 ? Math.max(...locations.map(l => l.id)) + 1 : 1;
+                const newLoc = {
+                    id: newId,
+                    name,
+                    address,
+                    lat: !isNaN(lat) ? lat : 42.5,
+                    lng: !isNaN(lng) ? lng : -83.1,
+                    zone: null
+                };
+
+                if (zoneValue !== 'auto' && zones.find(z => z.id === parseInt(zoneValue))) {
+                    newLoc.zone = parseInt(zoneValue);
+                }
+
+                locations.push(newLoc);
+
+                if (newLoc.zone === null) {
+                    // Auto-assign to nearest zone with room
+                    let assigned = false;
+                    const sortedZones = [...zones].sort((a, b) => {
+                        const distA = getDistance(newLoc.lat, newLoc.lng, a.lat, a.lng);
+                        const distB = getDistance(newLoc.lat, newLoc.lng, b.lat, b.lng);
+                        return distA - distB;
+                    });
+
+                    for (const zone of sortedZones) {
+                        const count = locations.filter(l => l.zone === zone.id).length;
+                        if (count < maxPerZone) {
+                            newLoc.zone = zone.id;
+                            assigned = true;
+                            break;
+                        }
+                    }
+
+                    if (!assigned && zones.length > 0) {
+                        newLoc.zone = zones[0].id;
+                    }
+                }
+            }
+
+            saveUserData();
+            closeModal('editModal');
+            renderAll();
+        }
+
+        function deleteLocation(id) {
+            if (confirm('Delete this location?')) {
+                locations = locations.filter(l => l.id !== id);
+                saveUserData();
+                renderAll();
+            }
+        }
+
+        function focusLocation(id) {
+            const loc = locations.find(l => l.id === id);
+            if (loc && markers[id]) {
+                map.setView([loc.lat, loc.lng], 14);
+                markers[id].openPopup();
+            }
+        }
+
+        function focusZone(zoneId) {
+            const zoneLocations = locations.filter(l => l.zone === zoneId);
+            if (zoneLocations.length > 0) {
+                const bounds = L.latLngBounds(zoneLocations.map(l => [l.lat, l.lng]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        // Zone management
+        function addNewZone() {
+            const name = document.getElementById('newZoneName').value || 'Zone ' + (zones.length + 1);
+            const color = document.getElementById('newZoneColor').value;
+
+            const newId = zones.length > 0 ? Math.max(...zones.map(z => z.id)) + 1 : 1;
+            zones.push({
+                id: newId,
+                name,
+                color,
+                lat: 42.5,
+                lng: -83.1
+            });
+
+            saveUserData();
+            closeModal('addZoneModal');
+            renderAll();
+        }
+
+        function deleteZone(id) {
+            if (confirm('Delete this zone? Locations will be reassigned.')) {
+                zones = zones.filter(z => z.id !== id);
+
+                // Reassign locations
+                locations.filter(l => l.zone === id).forEach(loc => {
+                    if (zones.length > 0) {
+                        const sortedZones = [...zones].sort((a, b) => {
+                            const distA = getDistance(loc.lat, loc.lng, a.lat, a.lng);
+                            const distB = getDistance(loc.lat, loc.lng, b.lat, b.lng);
+                            return distA - distB;
+                        });
+                        loc.zone = sortedZones[0].id;
+                    } else {
+                        loc.zone = null;
+                    }
+                });
+
+                saveUserData();
+                renderAll();
+            }
+        }
+
+        // Modal functions
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+</html>
